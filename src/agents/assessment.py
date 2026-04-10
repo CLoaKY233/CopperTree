@@ -1,7 +1,8 @@
 from typing import Optional
+
 from pydantic import BaseModel
 
-from src.agents.base import BaseAgent, ConversationBudget
+from src.agents.base import BaseAgent
 from src.llm.client import LLMClient
 from src.llm.utils import parse_llm_json
 from src.models.case_file import CaseFile
@@ -64,8 +65,12 @@ class AssessmentAgent(BaseAgent):
             (m["content"] for m in reversed(messages) if m["role"] == "assistant"), ""
         )
         closing_signals = [
-            "we'll be in touch", "resolution options", "next steps",
-            "transfer you", "specialist will", "follow up"
+            "we'll be in touch",
+            "resolution options",
+            "next steps",
+            "transfer you",
+            "specialist will",
+            "follow up",
         ]
         return any(signal in last_agent.lower() for signal in closing_signals)
 

@@ -1,5 +1,6 @@
 import tiktoken
 from openai import OpenAI
+
 from src.config import settings
 from src.llm.cost_tracker import log_cost
 

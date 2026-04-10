@@ -4,7 +4,10 @@ MAX_BORROWER_MSG_LEN = 2000
 
 _STOP_PATTERNS = [
     # Must be an affirmative command — exclude "I haven't told you to stop", "don't stop", etc.
-    re.compile(r"(?<!n't\s)(?<!not\s)(?<!never\s)\b(please\s+)?(stop|cease|quit)\s+(calling|contacting|texting|emailing|reaching\s+out)\b", re.I),
+    re.compile(
+        r"(?<!n't\s)(?<!not\s)(?<!never\s)\b(please\s+)?(stop|cease|quit)\s+(calling|contacting|texting|emailing|reaching\s+out)\b",
+        re.I,
+    ),
     re.compile(r"\bdo\s+not\s+contact\s+me\b", re.I),
     re.compile(r"\bdo\s+not\s+call\s+me\b", re.I),
     re.compile(r"\bdon'?t\s+(call|contact)\s+me\s+(again|anymore)\b", re.I),
@@ -14,7 +17,9 @@ _STOP_PATTERNS = [
     re.compile(r"\bno\s+more\s+(calls?|messages?|contact)\b", re.I),
     re.compile(r"\bstop\s+harassing\b", re.I),
     re.compile(r"\bi\s+said\s+stop\b", re.I),
-    re.compile(r"\bsend\s+(everything|all\s+correspondence)\s+(in\s+writing|by\s+mail)\b", re.I),
+    re.compile(
+        r"\bsend\s+(everything|all\s+correspondence)\s+(in\s+writing|by\s+mail)\b", re.I
+    ),
 ]
 
 _HARDSHIP_PATTERNS = [
@@ -66,7 +71,7 @@ def sanitize_borrower_input(text: str) -> tuple[str, list[str]]:
 
     for pattern in _INJECTION_PATTERNS:
         if pattern.search(text):
-            flags.append(f"injection_pattern_detected")
+            flags.append("injection_pattern_detected")
             break
 
     return text, flags

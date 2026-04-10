@@ -37,7 +37,11 @@ class CollectionsWorkflow:
         )
 
         if assessment.get("stop_contact"):
-            return {"outcome": "stop_contact", "stage": "assessment", "borrower_id": borrower_id}
+            return {
+                "outcome": "stop_contact",
+                "stage": "assessment",
+                "borrower_id": borrower_id,
+            }
 
         # Stage 2 — Resolution (voice) is not yet implemented
         # When ready, insert: await workflow.execute_activity(run_resolution, ...)

@@ -9,7 +9,9 @@ from src.llm.client import LLMClient
 from src.models.case_file import CaseFile
 from src.storage.prompt_registry import get_current_prompt
 
-_COMPLIANCE_BLOCK_PATH = Path(__file__).parent.parent.parent / "prompts" / "shared" / "compliance_block.txt"
+_COMPLIANCE_BLOCK_PATH = (
+    Path(__file__).parent.parent.parent / "prompts" / "shared" / "compliance_block.txt"
+)
 _STOP_CONTACT_RESPONSE = (
     "I understand. I will note your request to cease contact immediately. "
     "You will receive a written confirmation. Thank you for letting us know."
@@ -33,7 +35,9 @@ class ConversationBudget:
         if self._turns > self.max_turns:
             raise BudgetExceeded(f"Turn limit ({self.max_turns}) reached")
         if self._cost > self.max_cost_usd:
-            raise BudgetExceeded(f"Cost limit (${self.max_cost_usd:.2f}) reached — spent ${self._cost:.4f}")
+            raise BudgetExceeded(
+                f"Cost limit (${self.max_cost_usd:.2f}) reached — spent ${self._cost:.4f}"
+            )
 
 
 class ConversationIO(Protocol):
@@ -71,7 +75,9 @@ class BaseAgent(ABC):
         full_prompt, handoff_context = enforce_budget(full_prompt, handoff_context)
 
         if handoff_context:
-            full_prompt = f"{full_prompt}\n\n<prior_context>\n{handoff_context}\n</prior_context>"
+            full_prompt = (
+                f"{full_prompt}\n\n<prior_context>\n{handoff_context}\n</prior_context>"
+            )
 
         return full_prompt
 
@@ -105,7 +111,9 @@ class BaseAgent(ABC):
         messages.append({"role": "assistant", "content": first_response})
 
         while True:
-            borrower_raw = io.get_response(first_response if len(messages) == 1 else messages[-1]["content"])
+            borrower_raw = io.get_response(
+                first_response if len(messages) == 1 else messages[-1]["content"]
+            )
             if borrower_raw is None:
                 break
 
@@ -118,7 +126,9 @@ class BaseAgent(ABC):
             if triggers["stop_contact"]:
                 case_file.compliance.stop_contact = True
                 messages.append({"role": "user", "content": borrower_text})
-                messages.append({"role": "assistant", "content": _STOP_CONTACT_RESPONSE})
+                messages.append(
+                    {"role": "assistant", "content": _STOP_CONTACT_RESPONSE}
+                )
                 break
 
             if triggers["hardship_flag"] and not case_file.compliance.hardship_offered:
@@ -134,12 +144,14 @@ class BaseAgent(ABC):
                 )
             except BudgetExceeded:
                 raise
-            except Exception as e:
+            except Exception:
                 # Transient LLM error — log and end conversation gracefully
-                messages.append({
-                    "role": "assistant",
-                    "content": "I'm having a technical issue. Please allow us to follow up shortly.",
-                })
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": "I'm having a technical issue. Please allow us to follow up shortly.",
+                    }
+                )
                 break
 
             budget.record_turn()

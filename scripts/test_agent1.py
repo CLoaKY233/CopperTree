@@ -6,6 +6,7 @@ No Temporal required — pure Python.
 Usage:
     uv run python scripts/test_agent1.py
 """
+
 import sys
 from pathlib import Path
 
@@ -50,26 +51,38 @@ PERSONAS = [
 ]
 
 
-
-
 def score_conversation(messages: list[dict]) -> dict[str, bool]:
     """Auto-score compliance disclosures and key behaviors from message content."""
     full_text = " ".join(
         m["content"] for m in messages if m["role"] == "assistant"
     ).lower()
     return {
-        "ai_disclosed": any(w in full_text for w in ["ai", "automated system", "artificial intelligence", "virtual"]),
+        "ai_disclosed": any(
+            w in full_text
+            for w in ["ai", "automated system", "artificial intelligence", "virtual"]
+        ),
         "recording_disclosed": "record" in full_text,
         "mini_miranda": "attempt to collect a debt" in full_text,
-        "identity_attempted": any(p in full_text for p in ["last 4", "account number", "verify your identity", "confirm your"]),
-        "hardship_mentioned": any(w in full_text for w in ["hardship", "financial difficulty", "assistance program"]),
+        "identity_attempted": any(
+            p in full_text
+            for p in [
+                "last 4",
+                "account number",
+                "verify your identity",
+                "confirm your",
+            ]
+        ),
+        "hardship_mentioned": any(
+            w in full_text
+            for w in ["hardship", "financial difficulty", "assistance program"]
+        ),
     }
 
 
 def run_persona(persona: dict, llm: LLMClient) -> None:
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PERSONA: {persona['name'].upper()}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     case_file = CaseFile(
         borrower_id="test_001",
@@ -120,7 +133,7 @@ def main() -> None:
         except Exception as e:
             print(f"\n[ERROR] Persona '{persona['name']}' failed: {e}")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Test run complete.")
 
 

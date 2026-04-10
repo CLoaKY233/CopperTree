@@ -1,4 +1,3 @@
-from src.agents.base import ConversationIO
 from src.llm.client import LLMClient
 
 
@@ -28,7 +27,10 @@ class SimulatedBorrower:
 
         self._history.append({"role": "assistant", "content": response})
 
-        if any(phrase in response.lower() for phrase in ["goodbye", "need to go", "have to go", "bye"]):
+        if any(
+            phrase in response.lower()
+            for phrase in ["goodbye", "need to go", "have to go", "bye"]
+        ):
             self._done = True
 
         return response

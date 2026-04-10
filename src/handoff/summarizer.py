@@ -1,7 +1,8 @@
 import json
+
+from src.handoff.token_budget import _count, enforce_budget
 from src.models.case_file import CaseFile
 from src.models.handoff import HandoffPacket
-from src.handoff.token_budget import enforce_budget, _count
 
 
 def build_handoff_packet(case_file: CaseFile) -> HandoffPacket:
@@ -12,7 +13,9 @@ def build_handoff_packet(case_file: CaseFile) -> HandoffPacket:
     if case_file.financial.income_status:
         key_facts.append(f"Income status: {case_file.financial.income_status}")
     if case_file.financial.hardship_flags:
-        key_facts.append(f"Hardship flags: {', '.join(case_file.financial.hardship_flags)}")
+        key_facts.append(
+            f"Hardship flags: {', '.join(case_file.financial.hardship_flags)}"
+        )
     if case_file.negotiation.commitments:
         key_facts.append(f"Commitments made: {len(case_file.negotiation.commitments)}")
     if case_file.negotiation.offers_made:

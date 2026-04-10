@@ -1,4 +1,5 @@
 from typing import Optional
+
 from pydantic import BaseModel
 
 from src.agents.base import BaseAgent
@@ -54,8 +55,11 @@ class FinalNoticeAgent(BaseAgent):
             (m["content"] for m in reversed(messages) if m["role"] == "assistant"), ""
         )
         closing_signals = [
-            "thank you for your time", "we'll proceed", "case will be referred",
-            "confirmation will be sent", "best of luck"
+            "thank you for your time",
+            "we'll proceed",
+            "case will be referred",
+            "confirmation will be sent",
+            "best of luck",
         ]
         return any(signal in last_agent.lower() for signal in closing_signals)
 
@@ -80,10 +84,12 @@ class FinalNoticeAgent(BaseAgent):
             case_file.compliance.stop_contact = True
         if extracted.final_decision in ("settled", "payment_plan"):
             if extracted.commitment_amount and extracted.commitment_type:
-                case_file.negotiation.commitments.append({
-                    "type": extracted.commitment_type,
-                    "amount": extracted.commitment_amount,
-                    "decision": extracted.final_decision,
-                })
+                case_file.negotiation.commitments.append(
+                    {
+                        "type": extracted.commitment_type,
+                        "amount": extracted.commitment_amount,
+                        "decision": extracted.final_decision,
+                    }
+                )
 
         return case_file

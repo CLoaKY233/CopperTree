@@ -14,17 +14,19 @@ def save_new_version(
 ) -> str:
     version = parent_version + 1
     doc_id = f"{agent}_v{version}"
-    prompt_versions.insert_one({
-        "_id": doc_id,
-        "agent": agent,
-        "version": version,
-        "parent_version": parent_version,
-        "prompt_text": prompt_text,
-        "token_count": token_count,
-        "is_current": False,
-        "change_description": change_description,
-        "eval_results": None,
-    })
+    prompt_versions.insert_one(
+        {
+            "_id": doc_id,
+            "agent": agent,
+            "version": version,
+            "parent_version": parent_version,
+            "prompt_text": prompt_text,
+            "token_count": token_count,
+            "is_current": False,
+            "change_description": change_description,
+            "eval_results": None,
+        }
+    )
     return doc_id
 
 

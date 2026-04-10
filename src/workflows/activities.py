@@ -26,7 +26,12 @@ def get_case(borrower_id: str) -> CaseFile:
 def save_case(case_file: CaseFile) -> None:
     case_files.update_one(
         {"_id": case_file.borrower_id},
-        {"$set": {**case_file.model_dump(), "updated_at": datetime.now(timezone.utc).isoformat()}},
+        {
+            "$set": {
+                **case_file.model_dump(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        },
     )
 
 
@@ -52,12 +57,14 @@ def run_assessment(borrower_id: str) -> dict:
         budget=budget,
     )
 
-    transcripts.insert_one({
-        "borrower_id": borrower_id,
-        "stage": "assessment",
-        "messages": messages,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    })
+    transcripts.insert_one(
+        {
+            "borrower_id": borrower_id,
+            "stage": "assessment",
+            "messages": messages,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    )
 
     updated_case.stage = Stage.RESOLUTION
     save_case(updated_case)
@@ -96,12 +103,14 @@ def run_final_notice(borrower_id: str, handoff_json: str) -> dict:
         budget=budget,
     )
 
-    transcripts.insert_one({
-        "borrower_id": borrower_id,
-        "stage": "final_notice",
-        "messages": messages,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    })
+    transcripts.insert_one(
+        {
+            "borrower_id": borrower_id,
+            "stage": "final_notice",
+            "messages": messages,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    )
 
     updated_case.stage = Stage.COMPLETE
     save_case(updated_case)

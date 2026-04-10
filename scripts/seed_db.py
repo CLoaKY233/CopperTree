@@ -3,13 +3,14 @@ Seed MongoDB with initial test data:
 - One test CaseFile document
 - One prompt_versions document per agent (seeded from prompts/v1/*.txt)
 """
+
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.storage.mongo import ping_db, case_files, prompt_versions
 from src.llm.client import LLMClient
+from src.storage.mongo import case_files, ping_db, prompt_versions
 
 AGENTS = ["assessment", "resolution", "final_notice"]
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts" / "v1"
@@ -71,17 +72,19 @@ def seed_prompts(llm: LLMClient) -> None:
         prompt_text = prompt_file.read_text()
         token_count = llm.count_tokens(prompt_text)
 
-        prompt_versions.insert_one({
-            "_id": doc_id,
-            "agent": agent,
-            "version": 1,
-            "parent_version": None,
-            "prompt_text": prompt_text,
-            "token_count": token_count,
-            "is_current": True,
-            "change_description": "Initial version seeded from prompts/v1/",
-            "eval_results": None,
-        })
+        prompt_versions.insert_one(
+            {
+                "_id": doc_id,
+                "agent": agent,
+                "version": 1,
+                "parent_version": None,
+                "prompt_text": prompt_text,
+                "token_count": token_count,
+                "is_current": True,
+                "change_description": "Initial version seeded from prompts/v1/",
+                "eval_results": None,
+            }
+        )
         print(f"  prompt_versions: inserted {doc_id} ({token_count} tokens)")
 
 

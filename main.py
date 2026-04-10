@@ -1,5 +1,5 @@
-from src.storage.mongo import ping_db
 from src.llm.client import LLMClient
+from src.storage.mongo import ping_db
 
 
 def main() -> None:
@@ -13,7 +13,9 @@ def main() -> None:
     llm = LLMClient()
     response = llm.complete(
         system_prompt="You are a helpful assistant.",
-        messages=[{"role": "user", "content": "Say 'CopperTree is ready.' and nothing else."}],
+        messages=[
+            {"role": "user", "content": "Say 'CopperTree is ready.' and nothing else."}
+        ],
         max_tokens=20,
     )
     print(f"  LLM response: {response}\n")
