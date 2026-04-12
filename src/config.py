@@ -14,16 +14,21 @@ class Settings(BaseModel):
     mongo_db: str
     temporal_host: str
     retell_api_key: str = ""
-    retell_agent_id: str = ""       # pre-created agent on Retell dashboard
+    retell_agent_id: str = ""  # pre-created agent on Retell dashboard
     retell_phone_number: str = ""
-    retell_webhook_secret: str = "" # optional — validates Retell webhook signatures
+    retell_webhook_secret: str = ""  # optional — validates Retell webhook signatures
     eval_mode: bool = False
-    webhook_port: int = 8001        # FastAPI webhook server port
+    webhook_port: int = 8001  # FastAPI webhook server port
     azure_foundry_endpoint: str = "https://coppertree1.services.ai.azure.com/"
-    azure_voice_deployment: str = ""      # voice model, defaults to azure_openai_deployment
+    azure_voice_deployment: str = ""  # voice model, defaults to azure_openai_deployment
     azure_voice_voice: str = "en-US-Ava:DragonHDLatestNeural"
     azure_voice_max_duration: int = 300  # seconds before auto-ending session
-    currency_symbol: str = "₹"          # default currency for collections
+    currency_symbol: str = "₹"  # default currency for collections
+    # Anthropic (judge model)
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-6"
+    anthropic_budget_usd: float = 30.0
+    azure_budget_usd: float = 20.0
 
 
 settings = Settings(
@@ -39,9 +44,17 @@ settings = Settings(
     retell_webhook_secret=os.environ.get("RETELL_WEBHOOK_SECRET", ""),
     eval_mode=os.environ.get("EVAL_MODE", "false").lower() == "true",
     webhook_port=int(os.environ.get("WEBHOOK_PORT", "8001")),
-    azure_foundry_endpoint=os.environ.get("AZURE_FOUNDRY_ENDPOINT", "https://coppertree1.services.ai.azure.com/"),
+    azure_foundry_endpoint=os.environ.get(
+        "AZURE_FOUNDRY_ENDPOINT", "https://coppertree1.services.ai.azure.com/"
+    ),
     azure_voice_deployment=os.environ.get("AZURE_VOICE_DEPLOYMENT", ""),
-    azure_voice_voice=os.environ.get("AZURE_VOICE_VOICE", "en-US-Ava:DragonHDLatestNeural"),
+    azure_voice_voice=os.environ.get(
+        "AZURE_VOICE_VOICE", "en-US-Ava:DragonHDLatestNeural"
+    ),
     azure_voice_max_duration=int(os.environ.get("AZURE_VOICE_MAX_DURATION", "300")),
     currency_symbol=os.environ.get("CURRENCY_SYMBOL", "₹"),
+    anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
+    anthropic_model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+    anthropic_budget_usd=float(os.environ.get("ANTHROPIC_BUDGET_USD", "30.0")),
+    azure_budget_usd=float(os.environ.get("AZURE_BUDGET_USD", "20.0")),
 )

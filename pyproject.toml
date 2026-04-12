@@ -20,6 +20,8 @@ dependencies = [
     "aiohttp>=3.13.5",
     "pyaudio>=0.2.14",
     "azure-identity>=1.25.3",
+    "anthropic>=0.52.0",
+    "scipy>=1.14.0",
 ]
 
 [dependency-groups]

@@ -24,6 +24,7 @@ from src.llm.utils import parse_llm_json
 # Shared test model
 # ---------------------------------------------------------------------------
 
+
 class TestModel(BaseModel):
     name: str
     value: int
@@ -31,6 +32,7 @@ class TestModel(BaseModel):
 
 class NestedModel(BaseModel):
     """Used to verify nested structures are handled correctly."""
+
     label: str
     count: int
     active: bool
@@ -127,7 +129,7 @@ class TestParseLlmJsonMarkdownFences:
         assert result.value == 55
 
     def test_json_fence_with_extra_whitespace_inside(self):
-        raw = "```json\n\n  {\"name\": \"Eve\", \"value\": 1}  \n\n```"
+        raw = '```json\n\n  {"name": "Eve", "value": 1}  \n\n```'
         result = parse_llm_json(raw, TestModel)
         assert result.name == "Eve"
         assert result.value == 1
@@ -191,7 +193,7 @@ class TestParseLlmJsonInvalidJson:
     def test_json_array_instead_of_object_raises_value_error(self):
         # A JSON array is valid JSON but not a valid dict for Pydantic
         with pytest.raises(ValueError):
-            parse_llm_json('[1, 2, 3]', TestModel)
+            parse_llm_json("[1, 2, 3]", TestModel)
 
     def test_plain_number_raises_value_error(self):
         with pytest.raises(ValueError):
@@ -236,7 +238,7 @@ class TestParseLlmJsonMissingFields:
             parse_llm_json(raw, TestModel)
 
     def test_empty_json_object_raises_value_error(self):
-        raw = '{}'
+        raw = "{}"
         with pytest.raises(ValueError):
             parse_llm_json(raw, TestModel)
 

@@ -16,20 +16,28 @@ Requirements:
     - Working microphone + speakers
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from src.llm.client import LLMClient
-from src.models.case_file import CaseFile, Stage, DebtInfo, FinancialInfo, NegotiationLedger, ComplianceState
 from src.agents.resolution import ResolutionAgent
-from src.voice.azure_voice_client import AzureVoiceClient
 from src.handoff.summarizer import build_handoff_packet
+from src.llm.client import LLMClient
+from src.models.case_file import (
+    CaseFile,
+    ComplianceState,
+    DebtInfo,
+    FinancialInfo,
+    NegotiationLedger,
+    Stage,
+)
+from src.voice.azure_voice_client import AzureVoiceClient
 
 # Test case — mimics what Assessment agent would have built
 TEST_CASE = CaseFile(
@@ -73,6 +81,7 @@ def get_system_prompt() -> str:
     """Load resolution prompt from registry or fall back to file."""
     try:
         from src.storage.prompt_registry import get_current_prompt
+
         prompt = get_current_prompt("resolution")
         print("[prompt] Loaded from registry")
         return prompt
@@ -91,7 +100,9 @@ def main():
     handoff_context = json.dumps(handoff.model_dump(mode="json"), indent=2)
     full_prompt = f"{system_prompt}\n\n--- HANDOFF CONTEXT ---\n{handoff_context}"
 
-    print(f"\nBorrower: voice_test_001 | Debt: ₹{TEST_CASE.debt.amount:,.0f} to {TEST_CASE.debt.creditor}")
+    print(
+        f"\nBorrower: voice_test_001 | Debt: ₹{TEST_CASE.debt.amount:,.0f} to {TEST_CASE.debt.creditor}"
+    )
     print(f"Identity already verified | Account ends: {TEST_CASE.partial_account}")
     print()
 
@@ -111,7 +122,10 @@ def main():
     llm = LLMClient()
     agent = ResolutionAgent(llm)
     messages = [
-        {"role": "assistant" if t["role"] == "agent" else "user", "content": t["content"]}
+        {
+            "role": "assistant" if t["role"] == "agent" else "user",
+            "content": t["content"],
+        }
         for t in call_result.transcript_turns
     ]
     updated_case = agent.extract_updates(messages, TEST_CASE)

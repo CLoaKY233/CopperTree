@@ -79,11 +79,16 @@ class BaseAgent(ABC):
         # Inject case-specific template variables
         if case_file is not None:
             from src.config import settings
+
             currency = settings.currency_symbol
             prompt_text = prompt_text.replace("{{currency}}", currency)
-            prompt_text = prompt_text.replace("{{debt_amount}}", f"{currency}{case_file.debt.amount:,.2f}")
+            prompt_text = prompt_text.replace(
+                "{{debt_amount}}", f"{currency}{case_file.debt.amount:,.2f}"
+            )
             prompt_text = prompt_text.replace("{{creditor}}", case_file.debt.creditor)
-            prompt_text = prompt_text.replace("{{account_ending}}", case_file.partial_account or "UNKNOWN")
+            prompt_text = prompt_text.replace(
+                "{{account_ending}}", case_file.partial_account or "UNKNOWN"
+            )
             prompt_text = prompt_text.replace("{{borrower_id}}", case_file.borrower_id)
 
         full_prompt = f"{prompt_text}\n\n{self._compliance_block}"
@@ -113,7 +118,9 @@ class BaseAgent(ABC):
         if budget is None:
             budget = ConversationBudget(max_turns=self.max_turns)
 
-        system_prompt = self.load_system_prompt(case_file=case_file, handoff_context=handoff_context)
+        system_prompt = self.load_system_prompt(
+            case_file=case_file, handoff_context=handoff_context
+        )
         messages: list[dict] = []
         injection_log: list[str] = []
 
@@ -147,18 +154,23 @@ class BaseAgent(ABC):
                 )
                 break
 
-            if triggers.get("dispute_flag") and not case_file.dispute_validation_required:
+            if (
+                triggers.get("dispute_flag")
+                and not case_file.dispute_validation_required
+            ):
                 # FDCPA §809: dispute triggers validation notice obligation — halt collection
                 case_file.dispute_validation_required = True
                 messages.append({"role": "user", "content": borrower_text})
-                messages.append({
-                    "role": "assistant",
-                    "content": (
-                        "I've noted your dispute. As required by the Fair Debt Collection Practices Act, "
-                        "we will send you a written validation notice with details about this debt. "
-                        "Collection activity is paused pending your review of that notice."
-                    ),
-                })
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": (
+                            "I've noted your dispute. As required by the Fair Debt Collection Practices Act, "
+                            "we will send you a written validation notice with details about this debt. "
+                            "Collection activity is paused pending your review of that notice."
+                        ),
+                    }
+                )
                 break
 
             if triggers["hardship_flag"] and not case_file.compliance.hardship_offered:
@@ -191,11 +203,12 @@ class BaseAgent(ABC):
             # Post-LLM guardrail: reject amounts exceeding debt ceiling
             if case_file.debt and case_file.debt.amount:
                 from src.config import settings as _cfg
+
                 _cur = _cfg.currency_symbol
-                amounts = re.findall(r'[\$₹₱€£]\s*([\d,]+(?:\.\d+)?)', agent_response)
+                amounts = re.findall(r"[\$₹₱€£]\s*([\d,]+(?:\.\d+)?)", agent_response)
                 for amt_str in amounts:
                     try:
-                        amt = float(amt_str.replace(',', ''))
+                        amt = float(amt_str.replace(",", ""))
                     except ValueError:
                         continue
                     if amt > case_file.debt.amount * 1.05:

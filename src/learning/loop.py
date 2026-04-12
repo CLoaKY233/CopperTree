@@ -15,9 +15,9 @@ from typing import Optional
 
 from src.evaluation.judge import ConversationJudge
 from src.evaluation.runner import EvalRunner, EvalRunResult
+from src.learning.journal import append_decision
 from src.learning.proposer import PromptProposer
 from src.learning.stats import should_promote
-from src.storage.mongo import eval_runs as eval_runs_collection
 from src.storage.prompt_registry import (
     get_current_prompt,
     promote_version,
@@ -25,9 +25,7 @@ from src.storage.prompt_registry import (
 )
 
 try:
-    from src.storage.mongo import db
-
-    _learning_iterations = db["learning_iterations"]
+    from src.storage.mongo import learning_iterations as _learning_iterations
 except Exception:
     _learning_iterations = None
 
@@ -37,7 +35,7 @@ class IterationResult:
     agent: str
     baseline_version: str
     candidate_version: str
-    decision: str              # "promoted" | "rejected"
+    decision: str  # "promoted" | "rejected"
     reason: str
     baseline_mean: float
     candidate_mean: float
@@ -88,7 +86,9 @@ class LearningLoop:
         Returns:
             IterationResult with decision, reason, and score deltas
         """
-        print(f"\n[loop] Starting iteration for agent='{agent_name}', n={n_conversations}, seed={seed}")
+        print(
+            f"\n[loop] Starting iteration for agent='{agent_name}', n={n_conversations}, seed={seed}"
+        )
 
         # Step 1: Get current prompt
         current_doc = get_current_prompt(agent_name)
@@ -108,7 +108,9 @@ class LearningLoop:
         )
 
         # Step 3: Analyze worst conversations (bottom 10 by composite)
-        worst = sorted(baseline_result.scores, key=lambda s: s.get("composite", 0.0))[:10]
+        worst = sorted(baseline_result.scores, key=lambda s: s.get("composite", 0.0))[
+            :10
+        ]
         print(f"[loop] Worst composite in baseline: {worst[0].get('composite', 0):.4f}")
 
         # Step 4: Propose candidate
@@ -141,10 +143,23 @@ class LearningLoop:
         baseline_scores = [s.get("composite", 0.0) for s in baseline_result.scores]
         candidate_scores = [s.get("composite", 0.0) for s in candidate_result.scores]
 
-        promote, reason = should_promote(
+        # Extract per-conversation compliance dimension scores for regression test
+        def _compliance_scores(scores: list[dict]) -> list[float]:
+            out = []
+            for s in scores:
+                c = s.get("full_metrics", {}).get("compliance", {})
+                if isinstance(c, dict) and "score" in c:
+                    out.append(float(c["score"]))
+                elif isinstance(s.get("compliance"), dict):
+                    out.append(float(s["compliance"].get("score", 0.0)))
+            return out
+
+        promote, reason, gate_details = should_promote(
             baseline_scores=baseline_scores,
             candidate_scores=candidate_scores,
             candidate_compliance_rate=candidate_result.compliance_pass_rate,
+            baseline_compliance_scores=_compliance_scores(baseline_result.scores),
+            candidate_compliance_scores=_compliance_scores(candidate_result.scores),
         )
 
         # Step 8: Act on decision
@@ -170,7 +185,40 @@ class LearningLoop:
         )
 
         # Step 9: Log to MongoDB
-        self._log_iteration(iteration_result, baseline_result.run_id, candidate_result.run_id)
+        self._log_iteration(
+            iteration_result, baseline_result.run_id, candidate_result.run_id
+        )
+
+        # Step 10: Append to decision journal
+        try:
+            # Compute stds for journal
+            def _std(scores: list[float]) -> float:
+                if not scores:
+                    return 0.0
+                mean = sum(scores) / len(scores)
+                return (sum((s - mean) ** 2 for s in scores) / len(scores)) ** 0.5
+
+            append_decision(
+                agent=agent_name,
+                baseline_version=baseline_version,
+                candidate_version=candidate_version,
+                decision=decision,
+                reason=reason,
+                baseline_mean=baseline_result.composite_mean,
+                baseline_std=_std(baseline_scores),
+                baseline_compliance_rate=baseline_result.compliance_pass_rate,
+                candidate_mean=candidate_result.composite_mean,
+                candidate_std=_std(candidate_scores),
+                candidate_compliance_rate=candidate_result.compliance_pass_rate,
+                n_conversations=n_conversations,
+                seed=seed,
+                gate_details=gate_details,
+                baseline_run_id=baseline_result.run_id,
+                candidate_run_id=candidate_result.run_id,
+            )
+        except Exception as exc:
+            print(f"[WARN] loop: failed to write decision journal — {exc}")
+
         return iteration_result
 
     def _log_iteration(
@@ -182,22 +230,24 @@ class LearningLoop:
         if _learning_iterations is None:
             return
         try:
-            _learning_iterations.insert_one({
-                "agent": result.agent,
-                "baseline_version": result.baseline_version,
-                "candidate_version": result.candidate_version,
-                "decision": result.decision,
-                "reason": result.reason,
-                "baseline_mean": result.baseline_mean,
-                "candidate_mean": result.candidate_mean,
-                "baseline_compliance_rate": result.baseline_compliance_rate,
-                "candidate_compliance_rate": result.candidate_compliance_rate,
-                "delta_mean": result.candidate_mean - result.baseline_mean,
-                "n_conversations": result.n_conversations,
-                "seed": result.seed,
-                "baseline_run_id": baseline_run_id,
-                "candidate_run_id": candidate_run_id,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            })
+            _learning_iterations.insert_one(
+                {
+                    "agent": result.agent,
+                    "baseline_version": result.baseline_version,
+                    "candidate_version": result.candidate_version,
+                    "decision": result.decision,
+                    "reason": result.reason,
+                    "baseline_mean": result.baseline_mean,
+                    "candidate_mean": result.candidate_mean,
+                    "baseline_compliance_rate": result.baseline_compliance_rate,
+                    "candidate_compliance_rate": result.candidate_compliance_rate,
+                    "delta_mean": result.candidate_mean - result.baseline_mean,
+                    "n_conversations": result.n_conversations,
+                    "seed": result.seed,
+                    "baseline_run_id": baseline_run_id,
+                    "candidate_run_id": candidate_run_id,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
         except Exception as e:
             print(f"[WARN] loop: failed to log iteration to MongoDB — {e}")

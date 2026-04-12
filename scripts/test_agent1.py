@@ -12,10 +12,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.llm.client import LLMClient
 from src.agents.assessment import AssessmentAgent
 from src.agents.base import ConversationBudget
 from src.agents.simulator import SimulatedBorrower
+from src.llm.client import LLMClient
 from src.models.case_file import CaseFile, DebtInfo
 
 PERSONAS = [

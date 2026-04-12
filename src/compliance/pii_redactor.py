@@ -45,17 +45,15 @@ _MASKED_PARTIAL = re.compile(r"[\*x]{3,}-{0,1}\d{1,4}", re.I)
 # separators may be space, dot, or hyphen.
 # We explicitly do NOT match already-masked patterns like "***-***-1234".
 _PHONE = re.compile(
-    r"(?<!\*)"                          # not preceded by masking asterisk
-    r"(?:\+1[-.\s]?)?"                  # optional country code
-    r"\(?\d{3}\)?[-.\s]?"              # area code
-    r"\d{3}[-.\s]?\d{4}"              # subscriber number
+    r"(?<!\*)"  # not preceded by masking asterisk
+    r"(?:\+1[-.\s]?)?"  # optional country code
+    r"\(?\d{3}\)?[-.\s]?"  # area code
+    r"\d{3}[-.\s]?\d{4}"  # subscriber number
     r"(?!\d)"
 )
 
 # Email addresses.
-_EMAIL = re.compile(
-    r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-)
+_EMAIL = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -134,14 +132,14 @@ def _redact_accounts(text: str) -> str:
     """
     protected: list[tuple[int, int]] = [
         m.span() for m in _PARTIAL_REF.finditer(text)
-    ] + [
-        m.span() for m in _MASKED_PARTIAL.finditer(text)
-    ]
+    ] + [m.span() for m in _MASKED_PARTIAL.finditer(text)]
 
     def _is_protected(start: int, end: int) -> bool:
         return any(ps <= start and end <= pe for ps, pe in protected)
 
-    def _replace_if_unprotected(pattern: re.Pattern[str], replacement: str, s: str) -> str:
+    def _replace_if_unprotected(
+        pattern: re.Pattern[str], replacement: str, s: str
+    ) -> str:
         parts: list[str] = []
         prev = 0
         for m in pattern.finditer(s):

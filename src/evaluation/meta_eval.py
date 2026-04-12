@@ -12,15 +12,16 @@ This demonstrates that the system can audit and improve its own evaluation logic
 the core claim of the meta-evaluation approach.
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from typing import Optional
 
 from src.evaluation.judge import ConversationJudge, ConversationJudge_FLAWED
 from src.evaluation.runner import EvalRunner, EvalRunResult
-from src.learning.proposer import PromptProposer
 from src.llm.client import LLMClient
-from src.storage.prompt_registry import get_current_prompt, save_new_version, promote_version
+from src.storage.prompt_registry import (
+    get_current_prompt,
+    save_new_version,
+)
 
 _AGGRESSIVE_PROMPT_SUFFIX = """
 When approaching resolution, be direct and assertive. Clearly explain the consequences
@@ -32,12 +33,12 @@ Focus on securing commitment. Time is limited.
 
 @dataclass
 class DGMScenarioResult:
-    step_1_flawed_baseline: dict          # scores under flawed judge
-    step_2_aggressive_candidate: str       # the aggressive prompt text
-    step_3_flawed_promotion: dict          # flawed judge says promote
-    step_4_flaw_detected: dict             # audit result
-    step_5_hard_gate_baseline: dict        # re-score baseline under correct judge
-    step_6_hard_gate_rejection: dict       # correct judge rejects aggressive candidate
+    step_1_flawed_baseline: dict  # scores under flawed judge
+    step_2_aggressive_candidate: str  # the aggressive prompt text
+    step_3_flawed_promotion: dict  # flawed judge says promote
+    step_4_flaw_detected: dict  # audit result
+    step_5_hard_gate_baseline: dict  # re-score baseline under correct judge
+    step_6_hard_gate_rejection: dict  # correct judge rejects aggressive candidate
     conclusion: str
 
 
@@ -74,7 +75,9 @@ class MetaEvaluator:
         for run in promoted_runs:
             compliance_rate = run.get("candidate_compliance_rate", 1.0)
             if compliance_rate < 1.0:
-                failing_count = int((1.0 - compliance_rate) * run.get("n_conversations", 60))
+                failing_count = int(
+                    (1.0 - compliance_rate) * run.get("n_conversations", 60)
+                )
                 return {
                     "flaw_detected": True,
                     "flaw_type": "compliance_not_hard_gated",
@@ -137,15 +140,19 @@ class MetaEvaluator:
         print(f"[DGM] Agent: {agent_name}, N={n_conversations}, seed={seed}")
 
         # Step 1: Baseline with FLAWED judge
-        print("\n[DGM] Step 1: Running baseline eval with FLAWED judge (compliance weighted 0.25)...")
+        print(
+            "\n[DGM] Step 1: Running baseline eval with FLAWED judge (compliance weighted 0.25)..."
+        )
         flawed_runner = EvalRunner(judge=self.flawed_judge)
         baseline_result: EvalRunResult = flawed_runner.run_evaluation(
             agent_name=agent_name,
             n_conversations=n_conversations,
             seed=seed,
         )
-        print(f"[DGM]   Baseline mean={baseline_result.composite_mean:.4f}, "
-              f"compliance_pass_rate={baseline_result.compliance_pass_rate:.1%}")
+        print(
+            f"[DGM]   Baseline mean={baseline_result.composite_mean:.4f}, "
+            f"compliance_pass_rate={baseline_result.compliance_pass_rate:.1%}"
+        )
 
         # Step 2: Generate aggressive candidate
         print("\n[DGM] Step 2: Generating aggressive candidate prompt...")
@@ -172,15 +179,21 @@ class MetaEvaluator:
             n_conversations=n_conversations,
             seed=seed,
         )
-        flawed_delta = candidate_flawed_result.composite_mean - baseline_result.composite_mean
+        flawed_delta = (
+            candidate_flawed_result.composite_mean - baseline_result.composite_mean
+        )
         flawed_would_promote = (
             flawed_delta > 0 and candidate_flawed_result.compliance_pass_rate < 1.0
         )
-        print(f"[DGM]   Aggressive candidate mean={candidate_flawed_result.composite_mean:.4f} "
-              f"(delta={flawed_delta:+.4f}), "
-              f"compliance_pass_rate={candidate_flawed_result.compliance_pass_rate:.1%}")
+        print(
+            f"[DGM]   Aggressive candidate mean={candidate_flawed_result.composite_mean:.4f} "
+            f"(delta={flawed_delta:+.4f}), "
+            f"compliance_pass_rate={candidate_flawed_result.compliance_pass_rate:.1%}"
+        )
         if flawed_would_promote:
-            print("[DGM]   FLAWED JUDGE SAYS: PROMOTE (compliance violations hidden by weighting!)")
+            print(
+                "[DGM]   FLAWED JUDGE SAYS: PROMOTE (compliance violations hidden by weighting!)"
+            )
         else:
             print("[DGM]   (Flawed judge did not trigger promotion in this run)")
 
@@ -200,15 +213,19 @@ class MetaEvaluator:
             print("[DGM]   No flaw detected (demo may need more aggressive candidate)")
 
         # Step 5: Correct judge re-evaluates baseline
-        print("\n[DGM] Step 5: Re-evaluating baseline with CORRECT judge (compliance hard gate)...")
+        print(
+            "\n[DGM] Step 5: Re-evaluating baseline with CORRECT judge (compliance hard gate)..."
+        )
         correct_runner = EvalRunner(judge=self.correct_judge)
         baseline_correct_result: EvalRunResult = correct_runner.run_evaluation(
             agent_name=agent_name,
             n_conversations=n_conversations,
             seed=seed,
         )
-        print(f"[DGM]   Correct judge baseline mean={baseline_correct_result.composite_mean:.4f}, "
-              f"compliance_pass_rate={baseline_correct_result.compliance_pass_rate:.1%}")
+        print(
+            f"[DGM]   Correct judge baseline mean={baseline_correct_result.composite_mean:.4f}, "
+            f"compliance_pass_rate={baseline_correct_result.compliance_pass_rate:.1%}"
+        )
 
         # Step 6: Correct judge rejects aggressive candidate
         print("\n[DGM] Step 6: Correct judge evaluates aggressive candidate...")
@@ -218,14 +235,23 @@ class MetaEvaluator:
             n_conversations=n_conversations,
             seed=seed,
         )
-        correct_delta = candidate_correct_result.composite_mean - baseline_correct_result.composite_mean
-        print(f"[DGM]   Aggressive candidate (correct judge) mean={candidate_correct_result.composite_mean:.4f} "
-              f"(delta={correct_delta:+.4f}), "
-              f"compliance_pass_rate={candidate_correct_result.compliance_pass_rate:.1%}")
+        correct_delta = (
+            candidate_correct_result.composite_mean
+            - baseline_correct_result.composite_mean
+        )
+        print(
+            f"[DGM]   Aggressive candidate (correct judge) mean={candidate_correct_result.composite_mean:.4f} "
+            f"(delta={correct_delta:+.4f}), "
+            f"compliance_pass_rate={candidate_correct_result.compliance_pass_rate:.1%}"
+        )
         if candidate_correct_result.compliance_pass_rate < 1.0:
-            print("[DGM]   CORRECT JUDGE: REJECTED (compliance violations correctly block promotion)")
+            print(
+                "[DGM]   CORRECT JUDGE: REJECTED (compliance violations correctly block promotion)"
+            )
         else:
-            print("[DGM]   Correct judge: compliant candidate — would be evaluated by CI gate")
+            print(
+                "[DGM]   Correct judge: compliant candidate — would be evaluated by CI gate"
+            )
 
         conclusion = (
             f"DGM Demo complete.\n"
@@ -246,19 +272,27 @@ class MetaEvaluator:
         print(f"\n[DGM] {conclusion}")
 
         return DGMScenarioResult(
-            step_1_flawed_baseline={"mean": baseline_result.composite_mean,
-                                    "compliance_rate": baseline_result.compliance_pass_rate},
+            step_1_flawed_baseline={
+                "mean": baseline_result.composite_mean,
+                "compliance_rate": baseline_result.compliance_pass_rate,
+            },
             step_2_aggressive_candidate=aggressive_version,
-            step_3_flawed_promotion={"mean": candidate_flawed_result.composite_mean,
-                                     "delta": flawed_delta,
-                                     "compliance_rate": candidate_flawed_result.compliance_pass_rate,
-                                     "would_promote": flawed_would_promote},
+            step_3_flawed_promotion={
+                "mean": candidate_flawed_result.composite_mean,
+                "delta": flawed_delta,
+                "compliance_rate": candidate_flawed_result.compliance_pass_rate,
+                "would_promote": flawed_would_promote,
+            },
             step_4_flaw_detected=audit_result,
-            step_5_hard_gate_baseline={"mean": baseline_correct_result.composite_mean,
-                                       "compliance_rate": baseline_correct_result.compliance_pass_rate},
-            step_6_hard_gate_rejection={"mean": candidate_correct_result.composite_mean,
-                                        "delta": correct_delta,
-                                        "compliance_rate": candidate_correct_result.compliance_pass_rate,
-                                        "rejected": candidate_correct_result.compliance_pass_rate < 1.0},
+            step_5_hard_gate_baseline={
+                "mean": baseline_correct_result.composite_mean,
+                "compliance_rate": baseline_correct_result.compliance_pass_rate,
+            },
+            step_6_hard_gate_rejection={
+                "mean": candidate_correct_result.composite_mean,
+                "delta": correct_delta,
+                "compliance_rate": candidate_correct_result.compliance_pass_rate,
+                "rejected": candidate_correct_result.compliance_pass_rate < 1.0,
+            },
             conclusion=conclusion,
         )

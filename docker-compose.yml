@@ -1,53 +1,53 @@
-version: "3.8"
+# =============================================================================
+# CopperTree Docker Compose
+#
+# Eval mode (recommended for reviewers):
+#   docker compose --profile eval up --exit-code-from eval-runner
+#
+# Full stack (Temporal + live workflows):
+#   docker compose --profile full up
+#
+# Both profiles read API keys and MONGO_URI from your .env file (cloud MongoDB).
+# =============================================================================
 
 services:
-  mongo:
-    image: mongo:7
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
-    ports:
-      - "27017:27017"
+  # ── Eval profile: one-shot pipeline container ────────────────────
+  eval-runner:
+    build: .
+    command: ["/bin/bash", "scripts/docker_eval_entrypoint.sh"]
+    env_file: .env
+    environment:
+      - EVAL_MODE=true
+      - EVAL_N=${EVAL_N:-5}
+      - EVAL_SEED=${EVAL_SEED:-42}
+      - EVAL_AGENT=${EVAL_AGENT:-assessment}
+      - EVAL_ITERATIONS=${EVAL_ITERATIONS:-1}
     volumes:
-      - mongo_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+      - ./data:/app/data
+    profiles: ["eval"]
 
+  # ── Full profile: long-running workflow worker ──────────────────
   worker:
     build: .
+    env_file: .env
     environment:
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
-      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT}
-      - MONGO_URI=mongodb://mongo:27017/?replicaSet=rs0
-      - MONGO_DB=${MONGO_DB:-coppertree}
       - TEMPORAL_HOST=temporal:7233
-      - RETELL_API_KEY=${RETELL_API_KEY:-}
-      - RETELL_PHONE_NUMBER=${RETELL_PHONE_NUMBER:-}
-      - EVAL_MODE=${EVAL_MODE:-true}
+      - EVAL_MODE=${EVAL_MODE:-false}
     depends_on:
-      mongo:
-        condition: service_healthy
       temporal:
         condition: service_started
     restart: on-failure
+    profiles: ["full"]
 
+  # ── Full profile: DB seeder ─────────────────────────────────────
   seeder:
     build: .
-    command: ["python", "scripts/seed_db.py"]
-    environment:
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
-      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT}
-      - MONGO_URI=mongodb://mongo:27017/?replicaSet=rs0
-      - MONGO_DB=${MONGO_DB:-coppertree}
-    depends_on:
-      mongo:
-        condition: service_healthy
+    command: ["uv", "run", "python", "scripts/seed_db.py"]
+    env_file: .env
     restart: "no"
+    profiles: ["full"]
 
+  # ── Full profile: Temporal + postgres ───────────────────────────
   temporal:
     image: temporalio/auto-setup:latest
     ports:
@@ -60,6 +60,7 @@ services:
       - POSTGRES_SEEDS=temporal-db
     depends_on:
       - temporal-db
+    profiles: ["full"]
 
   temporal-db:
     image: postgres:15
@@ -68,6 +69,7 @@ services:
       POSTGRES_PASSWORD: temporal
     volumes:
       - temporal_data:/var/lib/postgresql/data
+    profiles: ["full"]
 
   temporal-ui:
     image: temporalio/ui:latest
@@ -77,7 +79,7 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
     depends_on:
       - temporal
+    profiles: ["full"]
 
 volumes:
   temporal_data:
-  mongo_data:

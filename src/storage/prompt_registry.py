@@ -12,7 +12,15 @@ def save_new_version(
     change_description: str,
     token_count: int,
 ) -> str:
-    version = parent_version + 1
+    # Find the actual max version to avoid duplicate key errors on re-runs
+    latest = prompt_versions.find_one({"agent": agent}, sort=[("version", -1)])
+    try:
+        max_existing = (
+            int(latest["version"]) if latest and isinstance(latest, dict) else 0
+        )
+    except (KeyError, TypeError, ValueError):
+        max_existing = 0
+    version = max(parent_version + 1, max_existing + 1)
     doc_id = f"{agent}_v{version}"
     prompt_versions.insert_one(
         {
@@ -33,7 +41,9 @@ def save_new_version(
 def update_eval_results(doc_id: str, eval_results: dict) -> None:
     if prompt_versions.find_one({"_id": doc_id}) is None:
         raise ValueError(f"Prompt version {doc_id!r} not found")
-    prompt_versions.update_one({"_id": doc_id}, {"$set": {"eval_results": eval_results}})
+    prompt_versions.update_one(
+        {"_id": doc_id}, {"$set": {"eval_results": eval_results}}
+    )
 
 
 def promote_version(doc_id: str, eval_results: dict | None = None) -> None:
@@ -41,7 +51,9 @@ def promote_version(doc_id: str, eval_results: dict | None = None) -> None:
     if doc is None:
         raise ValueError(f"Prompt version {doc_id!r} not found")
     if eval_results is not None:
-        prompt_versions.update_one({"_id": doc_id}, {"$set": {"eval_results": eval_results}})
+        prompt_versions.update_one(
+            {"_id": doc_id}, {"$set": {"eval_results": eval_results}}
+        )
     prompt_versions.update_many(
         {"agent": doc["agent"], "is_current": True},
         {"$set": {"is_current": False}},

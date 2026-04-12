@@ -21,6 +21,7 @@ from src.handoff.token_budget import MAX_HANDOFF, MAX_TOTAL, _count, enforce_bud
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _words(n: int) -> str:
     """Produce a string of exactly n space-separated words (each a simple ASCII token)."""
     return " ".join(f"word{i}" for i in range(n))
@@ -179,8 +180,8 @@ class TestSystemPromptTruncationWithHandoff:
 
     def test_system_prompt_fits_remaining_budget(self):
         # Handoff near the limit, system_prompt is large
-        handoff = _words(400)   # ~400 tokens
-        prompt = _words(2000)   # well over remaining ~1600
+        handoff = _words(400)  # ~400 tokens
+        prompt = _words(2000)  # well over remaining ~1600
         prompt_out, handoff_out = enforce_budget(prompt, handoff)
         total = _token_count(prompt_out) + _token_count(handoff_out)
         assert total <= MAX_TOTAL

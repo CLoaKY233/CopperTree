@@ -50,7 +50,11 @@ Rules:
 
 
 class ResolutionExtraction(BaseModel):
-    resolution_outcome: Optional[Literal["settled", "payment_plan", "hardship_referred", "declined", "no_response"]] = None
+    resolution_outcome: Optional[
+        Literal[
+            "settled", "payment_plan", "hardship_referred", "declined", "no_response"
+        ]
+    ] = None
     commitment_amount: Optional[float] = None
     commitment_type: Optional[Literal["lump_sum", "payment_plan"]] = None
     commitment_months: Optional[int] = None
@@ -100,7 +104,9 @@ class ResolutionAgent(BaseAgent):
                 "or the borrower disengaged. "
                 "Reply with exactly one word: YES or NO."
             ),
-            messages=[{"role": "user", "content": f"Agent's last message:\n{last_agent}"}],
+            messages=[
+                {"role": "user", "content": f"Agent's last message:\n{last_agent}"}
+            ],
             max_tokens=5,
         )
         return completion_check.strip().upper().startswith("YES")
@@ -138,12 +144,14 @@ class ResolutionAgent(BaseAgent):
 
         # Update negotiation ledger — commitments
         if extracted.commitment_amount is not None:
-            case_file.negotiation.commitments.append({
-                "type": extracted.commitment_type,
-                "amount": extracted.commitment_amount,
-                "months": extracted.commitment_months,
-                "outcome": extracted.resolution_outcome,
-            })
+            case_file.negotiation.commitments.append(
+                {
+                    "type": extracted.commitment_type,
+                    "amount": extracted.commitment_amount,
+                    "months": extracted.commitment_months,
+                    "outcome": extracted.resolution_outcome,
+                }
+            )
 
         # Update compliance state
         if extracted.ai_disclosed:

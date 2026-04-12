@@ -93,7 +93,11 @@ def seed_prompts(llm: LLMClient) -> None:
 def ensure_indexes() -> None:
     """Create indexes if they don't exist. Idempotent."""
     transcripts.create_index(
-        [("borrower_id", ASCENDING), ("stage", ASCENDING), ("workflow_run_id", ASCENDING)],
+        [
+            ("borrower_id", ASCENDING),
+            ("stage", ASCENDING),
+            ("workflow_run_id", ASCENDING),
+        ],
         unique=True,
         name="transcript_idempotency",
     )
@@ -127,8 +131,13 @@ def reseed_prompts(llm: LLMClient) -> None:
 
 def main() -> None:
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--reseed", action="store_true", help="Delete and re-seed all prompts from v1 files")
+    parser.add_argument(
+        "--reseed",
+        action="store_true",
+        help="Delete and re-seed all prompts from v1 files",
+    )
     args = parser.parse_args()
 
     print("Pinging MongoDB...")

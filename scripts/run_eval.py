@@ -22,6 +22,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from src.evaluation.judge import ConversationJudge
 from src.evaluation.runner import EvalRunner
 from src.learning.loop import LearningLoop
@@ -41,7 +45,9 @@ def cmd_eval(args: argparse.Namespace) -> None:
     print(f"Run ID:            {result.run_id}")
     print(f"Prompt version:    {result.prompt_version_id}")
     print(f"Conversations:     {result.n_conversations}")
-    print(f"Composite mean:    {result.composite_mean:.4f} ± {result.composite_std:.4f}")
+    print(
+        f"Composite mean:    {result.composite_mean:.4f} ± {result.composite_std:.4f}"
+    )
     print(f"Compliance pass:   {result.compliance_pass_rate:.1%}")
 
     print("\nPer-persona breakdown:")
@@ -56,7 +62,9 @@ def cmd_eval(args: argparse.Namespace) -> None:
     if args.promote:
         print("\n[promote] Checking statistical gate before promotion...")
         # Need a baseline to compare against — print warning if no baseline available
-        print("[promote] --promote requires a comparison run. Use --loop for full learning iteration.")
+        print(
+            "[promote] --promote requires a comparison run. Use --loop for full learning iteration."
+        )
 
 
 def cmd_loop(args: argparse.Namespace) -> None:
@@ -80,14 +88,18 @@ def cmd_loop(args: argparse.Namespace) -> None:
         print(f"  Reason:            {result.reason}")
         print(f"  Baseline mean:     {result.baseline_mean:.4f}")
         print(f"  Candidate mean:    {result.candidate_mean:.4f}")
-        print(f"  Delta:             {result.candidate_mean - result.baseline_mean:+.4f}")
+        print(
+            f"  Delta:             {result.candidate_mean - result.baseline_mean:+.4f}"
+        )
 
     print(f"\n=== Loop Complete: {len(results)} iterations ===")
     promoted = [r for r in results if r.decision == "promoted"]
     print(f"Promoted: {len(promoted)}/{len(results)}")
     if promoted:
         for r in promoted:
-            print(f"  {r.candidate_version}: {r.baseline_mean:.4f} → {r.candidate_mean:.4f}")
+            print(
+                f"  {r.candidate_version}: {r.baseline_mean:.4f} → {r.candidate_mean:.4f}"
+            )
 
 
 def cmd_meta_eval(args: argparse.Namespace) -> None:
@@ -98,8 +110,12 @@ def cmd_meta_eval(args: argparse.Namespace) -> None:
 
     if args.demo:
         print("\n=== DGM Meta-Evaluation Demo ===")
-        print("This demo demonstrates that the system can detect flaws in its own evaluation.")
-        print("Step-by-step: flawed judge → flaw detected → correct judge → safe rejection.\n")
+        print(
+            "This demo demonstrates that the system can detect flaws in its own evaluation."
+        )
+        print(
+            "Step-by-step: flawed judge → flaw detected → correct judge → safe rejection.\n"
+        )
 
         result = meta.demonstrate_dgm_scenario(
             agent_name=args.agent,
@@ -116,11 +132,16 @@ def cmd_meta_eval(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="CopperTree evaluation pipeline")
-    parser.add_argument("--agent", default="assessment",
-                        choices=["assessment", "resolution", "final_notice"],
-                        help="Which agent to evaluate")
+    parser.add_argument(
+        "--agent",
+        default="assessment",
+        choices=["assessment", "resolution", "final_notice"],
+        help="Which agent to evaluate",
+    )
     parser.add_argument("--n", type=int, default=60, help="Number of conversations")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for reproducibility"
+    )
 
     # Mode flags (mutually exclusive)
     mode = parser.add_mutually_exclusive_group()
@@ -128,9 +149,15 @@ def main() -> None:
     mode.add_argument("--meta-eval", action="store_true", help="Run meta-evaluation")
 
     # Sub-options
-    parser.add_argument("--iterations", type=int, default=3, help="Iterations for --loop")
-    parser.add_argument("--promote", action="store_true", help="Promote if better (with --eval)")
-    parser.add_argument("--demo", action="store_true", help="Run DGM demo (with --meta-eval)")
+    parser.add_argument(
+        "--iterations", type=int, default=3, help="Iterations for --loop"
+    )
+    parser.add_argument(
+        "--promote", action="store_true", help="Promote if better (with --eval)"
+    )
+    parser.add_argument(
+        "--demo", action="store_true", help="Run DGM demo (with --meta-eval)"
+    )
 
     args = parser.parse_args()
 

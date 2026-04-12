@@ -3,12 +3,12 @@ Prompt proposer — uses LLM to generate a targeted mutation of an agent prompt
 based on failure analysis from the worst-performing evaluation conversations.
 """
 
-import json
 from typing import Optional
+
+from pydantic import BaseModel
 
 from src.llm.client import LLMClient
 from src.llm.utils import parse_llm_json
-from pydantic import BaseModel
 
 _PROPOSER_PROMPT = """\
 You are a prompt engineer improving a debt collections AI agent.
@@ -103,7 +103,11 @@ class PromptProposer:
                     violations.append("Mini-Miranda missing")
 
             effectiveness = score.get("effectiveness", {})
-            outcome = effectiveness.get("resolution_outcome", "unknown") if isinstance(effectiveness, dict) else "unknown"
+            outcome = (
+                effectiveness.get("resolution_outcome", "unknown")
+                if isinstance(effectiveness, dict)
+                else "unknown"
+            )
 
             lines.append(
                 f"  {i}. persona={persona}, composite={composite:.3f}, "

@@ -1,5 +1,7 @@
+import time
+
 import tiktoken
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 from src.config import settings
 from src.llm.cost_tracker import log_cost
@@ -12,7 +14,9 @@ class LLMChoicesEmptyError(Exception):
 class LLMContentFilteredError(Exception):
     pass
 
+
 PRICING: dict[str, dict[str, float]] = {
+    "gpt-5.4-mini": {"input": 0.40 / 1_000_000, "output": 1.60 / 1_000_000},
     "gpt-5.4-nano": {"input": 0.15 / 1_000_000, "output": 0.60 / 1_000_000},
 }
 
@@ -39,11 +43,21 @@ class LLMClient:
         max_tokens: int = 500,
     ) -> str:
         model = model or self.default_model
-        resp = self.client.chat.completions.create(
-            model=model,
-            messages=[{"role": "system", "content": system_prompt}] + messages,
-            max_completion_tokens=max_tokens,
-        )
+        full_messages = [{"role": "system", "content": system_prompt}] + messages
+        for attempt in range(5):
+            try:
+                resp = self.client.chat.completions.create(
+                    model=model,
+                    messages=full_messages,
+                    max_completion_tokens=max_tokens,
+                )
+                break
+            except RateLimitError:
+                if attempt == 4:
+                    raise
+                wait = 2**attempt  # 1, 2, 4, 8, 16s
+                print(f"[LLM] Rate limited, retrying in {wait}s...")
+                time.sleep(wait)
         usage = resp.usage
         pricing = PRICING.get(model, PRICING["gpt-5.4-nano"])
         cost = (
@@ -60,7 +74,9 @@ class LLMClient:
         except Exception as e:
             print(f"[WARN] cost_tracker: failed to log cost — {e}")
         if not resp.choices:
-            raise LLMChoicesEmptyError(f"Azure returned empty choices for model {model}")
+            raise LLMChoicesEmptyError(
+                f"Azure returned empty choices for model {model}"
+            )
         content = resp.choices[0].message.content
         if content is None:
             raise LLMContentFilteredError("Azure content filter blocked this response")

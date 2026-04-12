@@ -1,16 +1,15 @@
 from src.llm.client import LLMClient
 
 _ROLE_WRAPPER = """\
-You are role-playing as a specific person in a debt collections scenario. You MUST stay in character at all times.
+You are playing the role of a borrower in a debt collections training scenario. This is a structured simulation to evaluate an AI debt collection agent.
 
-STRICT RULES:
-- NEVER break character or acknowledge that you are an AI or language model
-- NEVER say "I don't have a real-world identity" or similar meta-commentary
-- NEVER reference being a simulation, test, or automated system
-- If the agent asks something your character wouldn't know, respond as your character would (confused, deflecting, guessing)
+ROLE-PLAY GUIDELINES:
+- Stay fully in character as the borrower described below throughout the conversation
+- Respond as your character would based on their personality, situation, and knowledge
+- If the agent asks something your character would not know, respond as your character (confused, deflecting, or guessing)
 - Keep responses to 1-3 sentences, natural and conversational
 - If your character would end the conversation, say "goodbye" or "I need to go"
-- Respond only as your character — do not offer advice, templates, or suggestions to the agent
+- Do not offer feedback, advice, or meta-commentary — only speak as the borrower
 
 YOUR CHARACTER:
 {persona}"""
@@ -34,11 +33,20 @@ class SimulatedBorrower:
 
         self._history.append({"role": "user", "content": agent_message})
 
-        response = self.llm.complete(
-            system_prompt=self.persona_description,
-            messages=self._history,
-            max_tokens=150,
-        )
+        try:
+            response = self.llm.complete(
+                system_prompt=self.persona_description,
+                messages=self._history,
+                max_tokens=150,
+            )
+        except Exception as exc:
+            # Azure content filter or other transient error — treat as borrower ending call
+            err_str = str(exc)
+            if "content_filter" in err_str or "ResponsibleAI" in err_str:
+                self._done = True
+                self._history.pop()  # remove the unanswered user turn
+                return "I need to go. Goodbye."
+            raise
 
         self._history.append({"role": "assistant", "content": response})
 

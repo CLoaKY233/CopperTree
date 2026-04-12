@@ -36,7 +36,9 @@ if TYPE_CHECKING:
     from azure.ai.voicelive.aio import VoiceLiveConnection
 
 logger = logging.getLogger(__name__)
-logging.getLogger("azure.ai.voicelive").setLevel(logging.CRITICAL)  # suppress transport-close noise
+logging.getLogger("azure.ai.voicelive").setLevel(
+    logging.CRITICAL
+)  # suppress transport-close noise
 
 SAMPLE_RATE = 24000
 CHANNELS = 1
@@ -52,6 +54,7 @@ def _suppress_alsa_errors() -> None:
         os.close(devnull)
         # Restore after a tick so only PyAudio init is silenced
         import atexit
+
         atexit.register(lambda: os.dup2(old_stderr, 2))
         # Restore immediately after PyAudio init completes (called from __init__)
         _suppress_alsa_errors._restore = old_stderr
@@ -72,9 +75,9 @@ def _restore_stderr() -> None:
 @dataclass
 class VoiceCallResult:
     call_id: str
-    status: str                       # "completed" | "interrupted" | "failed"
+    status: str  # "completed" | "interrupted" | "failed"
     transcript: str
-    transcript_turns: list[dict]      # [{"role": "agent"|"user", "content": str}]
+    transcript_turns: list[dict]  # [{"role": "agent"|"user", "content": str}]
     call_successful: Optional[bool] = None
     duration_seconds: Optional[float] = None
     error_message: Optional[str] = None
@@ -98,7 +101,9 @@ class AudioProcessor:
         self.rate = SAMPLE_RATE
         self.chunk_size = CHUNK_SIZE
         self.input_stream = None
-        self.playback_queue: queue.Queue[AudioProcessor.AudioPlaybackPacket] = queue.Queue()
+        self.playback_queue: queue.Queue[AudioProcessor.AudioPlaybackPacket] = (
+            queue.Queue()
+        )
         self.playback_base = 0
         self.next_seq_num = 0
         self.output_stream: Optional[pyaudio.Stream] = None
@@ -113,15 +118,19 @@ class AudioProcessor:
             audio_base64 = base64.b64encode(in_data).decode("utf-8")
             try:
                 asyncio.run_coroutine_threadsafe(
-                    self.connection.input_audio_buffer.append(audio=audio_base64), self.loop
+                    self.connection.input_audio_buffer.append(audio=audio_base64),
+                    self.loop,
                 )
             except Exception:
                 pass  # connection closing — ignore
             return (None, pyaudio.paContinue)
 
         self.input_stream = self.audio.open(
-            format=self.format, channels=self.channels, rate=self.rate,
-            input=True, frames_per_buffer=self.chunk_size,
+            format=self.format,
+            channels=self.channels,
+            rate=self.rate,
+            input=True,
+            frames_per_buffer=self.chunk_size,
             stream_callback=_capture_callback,
         )
 
@@ -153,11 +162,18 @@ class AudioProcessor:
                 num_to_take = frame_count - len(out)
                 out = out + packet.data[:num_to_take]
                 remaining = packet.data[num_to_take:]
-            return (out, pyaudio.paContinue) if len(out) >= frame_count else (out, pyaudio.paComplete)
+            return (
+                (out, pyaudio.paContinue)
+                if len(out) >= frame_count
+                else (out, pyaudio.paComplete)
+            )
 
         self.output_stream = self.audio.open(
-            format=self.format, channels=self.channels, rate=self.rate,
-            output=True, frames_per_buffer=self.chunk_size,
+            format=self.format,
+            channels=self.channels,
+            rate=self.rate,
+            output=True,
+            frames_per_buffer=self.chunk_size,
             stream_callback=_playback_callback,
         )
 
@@ -167,9 +183,11 @@ class AudioProcessor:
         return seq
 
     def queue_audio(self, audio_data: Optional[bytes]) -> None:
-        self.playback_queue.put(AudioProcessor.AudioPlaybackPacket(
-            seq_num=self._get_and_increase_seq_num(), data=audio_data
-        ))
+        self.playback_queue.put(
+            AudioProcessor.AudioPlaybackPacket(
+                seq_num=self._get_and_increase_seq_num(), data=audio_data
+            )
+        )
 
     def skip_pending_audio(self) -> None:
         self.playback_base = self._get_and_increase_seq_num()
@@ -197,14 +215,22 @@ class _CopperTreeVoiceSession:
 
     # Strong farewell phrases that signal the agent has wrapped up
     _FAREWELL_PHRASES = (
-        "have a good day", "have a great day", "goodbye", "good bye",
-        "wishing you the best", "this concludes",
+        "have a good day",
+        "have a great day",
+        "goodbye",
+        "good bye",
+        "wishing you the best",
+        "this concludes",
     )
     # Soft signals that combined with a farewell indicate wrap-up
     _SOFT_FAREWELL = (
-        "take care", "thank you for working", "we will be in touch",
-        "i'll be in touch", "don't hesitate to reach out",
-        "written confirmation", "formal agreement",
+        "take care",
+        "thank you for working",
+        "we will be in touch",
+        "i'll be in touch",
+        "don't hesitate to reach out",
+        "written confirmation",
+        "formal agreement",
     )
 
     def __init__(self, system_prompt: str, call_id: str) -> None:
@@ -216,7 +242,7 @@ class _CopperTreeVoiceSession:
         self._active_response = False
         self._response_api_done = False
         self._greeting_sent = False
-        self._farewell_count = 0   # auto-end after 2 farewell turns
+        self._farewell_count = 0  # auto-end after 2 farewell turns
         self._end_session = False  # clean exit flag — set True to break event loop
 
     async def run(self) -> VoiceCallResult:
@@ -224,12 +250,16 @@ class _CopperTreeVoiceSession:
         agent_config: AgentSessionConfig = {
             "agent_name": os.environ.get("AZURE_VOICELIVE_AGENT_ID", "coppertreevoice"),
             "agent_version": agent_version,
-            "project_name": os.environ.get("AZURE_VOICELIVE_PROJECT_NAME", "coppertree"),
+            "project_name": os.environ.get(
+                "AZURE_VOICELIVE_PROJECT_NAME", "coppertree"
+            ),
         }
 
         max_duration = settings.azure_voice_max_duration
         start_time = time.time()
-        print(f"\n{'='*65}\nCopperTree Voice Session | {self.call_id}\nPress Ctrl+C to end\n{'='*65}\n")
+        print(
+            f"\n{'=' * 65}\nCopperTree Voice Session | {self.call_id}\nPress Ctrl+C to end\n{'=' * 65}\n"
+        )
 
         try:
             async with connect(
@@ -242,18 +272,24 @@ class _CopperTreeVoiceSession:
                 ap = AudioProcessor(conn)
                 self.audio_processor = ap
 
-                await conn.session.update(session=RequestSession(
-                    modalities=[Modality.TEXT, Modality.AUDIO],
-                    input_audio_format=InputAudioFormat.PCM16,
-                    output_audio_format=OutputAudioFormat.PCM16,
-                ))
+                await conn.session.update(
+                    session=RequestSession(
+                        modalities=[Modality.TEXT, Modality.AUDIO],
+                        input_audio_format=InputAudioFormat.PCM16,
+                        output_audio_format=OutputAudioFormat.PCM16,
+                    )
+                )
 
                 ap.start_playback()
-                print(f"🎤 VOICE ASSISTANT READY\nStart speaking to begin conversation\n")
+                print(
+                    f"🎤 VOICE ASSISTANT READY\nStart speaking to begin conversation\n"
+                )
 
                 async for event in conn:
                     if time.time() - start_time > max_duration:
-                        print(f"\n[voice] Max duration ({max_duration}s) reached — ending session")
+                        print(
+                            f"\n[voice] Max duration ({max_duration}s) reached — ending session"
+                        )
                         break
                     await self._handle_event(event, conn, ap)
                     if self._end_session:
@@ -268,7 +304,9 @@ class _CopperTreeVoiceSession:
             f"{'Agent' if t['role'] == 'agent' else 'You'}: {t['content']}"
             for t in self.transcript_turns
         )
-        print(f"\n{'='*65}\nSession ended | {duration:.1f}s | {len(self.transcript_turns)} turns\n{'='*65}\n")
+        print(
+            f"\n{'=' * 65}\nSession ended | {duration:.1f}s | {len(self.transcript_turns)} turns\n{'=' * 65}\n"
+        )
         return VoiceCallResult(
             call_id=self.call_id,
             status="completed",
@@ -277,7 +315,9 @@ class _CopperTreeVoiceSession:
             duration_seconds=duration,
         )
 
-    async def _handle_event(self, event: Any, conn: "VoiceLiveConnection", ap: AudioProcessor) -> None:
+    async def _handle_event(
+        self, event: Any, conn: "VoiceLiveConnection", ap: AudioProcessor
+    ) -> None:
         etype = event.type
 
         if etype == ServerEventType.SESSION_UPDATED:
@@ -286,20 +326,26 @@ class _CopperTreeVoiceSession:
                 self._greeting_sent = True
                 try:
                     # Inject borrower context + trigger opening
-                    await conn.conversation.item.create(item=MessageItem(
-                        role="system",
-                        content=[InputTextContentPart(text=self.system_prompt)],
-                    ))
-                    await conn.conversation.item.create(item=MessageItem(
-                        role="system",
-                        content=[InputTextContentPart(
-                            text=(
-                                "Begin the resolution conversation now. "
-                                "The borrower's identity was already verified. "
-                                "Respond in the same language the borrower uses (English, Hindi, or Hinglish)."
-                            )
-                        )],
-                    ))
+                    await conn.conversation.item.create(
+                        item=MessageItem(
+                            role="system",
+                            content=[InputTextContentPart(text=self.system_prompt)],
+                        )
+                    )
+                    await conn.conversation.item.create(
+                        item=MessageItem(
+                            role="system",
+                            content=[
+                                InputTextContentPart(
+                                    text=(
+                                        "Begin the resolution conversation now. "
+                                        "The borrower's identity was already verified. "
+                                        "Respond in the same language the borrower uses (English, Hindi, or Hinglish)."
+                                    )
+                                )
+                            ],
+                        )
+                    )
                     await conn.response.create()
                 except Exception:
                     logger.exception("Failed to send greeting")
@@ -348,7 +394,10 @@ class _CopperTreeVoiceSession:
                     print("\n[voice] Agent wrapped up — ending session automatically")
                     self._end_session = True
 
-        elif etype == ServerEventType.CONVERSATION_ITEM_INPUT_AUDIO_TRANSCRIPTION_COMPLETED:
+        elif (
+            etype
+            == ServerEventType.CONVERSATION_ITEM_INPUT_AUDIO_TRANSCRIPTION_COMPLETED
+        ):
             text = getattr(event, "transcript", "") or ""
             if text.strip():
                 self.transcript_turns.append({"role": "user", "content": text.strip()})
@@ -361,7 +410,10 @@ class _CopperTreeVoiceSession:
 
         elif etype == ServerEventType.ERROR:
             msg = getattr(getattr(event, "error", None), "message", str(event))
-            if "no active response" not in msg.lower() and "cancellation failed" not in msg.lower():
+            if (
+                "no active response" not in msg.lower()
+                and "cancellation failed" not in msg.lower()
+            ):
                 logger.error("VoiceLive error: %s", msg)
                 print(f"[voice] Error: {msg}")
 
@@ -375,7 +427,18 @@ class AzureVoiceClient:
             return asyncio.run(_CopperTreeVoiceSession(system_prompt, call_id).run())
         except KeyboardInterrupt:
             print("\n[voice] Session ended by user")
-            return VoiceCallResult(call_id=call_id, status="interrupted", transcript="", transcript_turns=[])
+            return VoiceCallResult(
+                call_id=call_id,
+                status="interrupted",
+                transcript="",
+                transcript_turns=[],
+            )
         except Exception as e:
             logger.error("[voice] Session failed: %s", e)
-            return VoiceCallResult(call_id=call_id, status="failed", transcript="", transcript_turns=[], error_message=str(e))
+            return VoiceCallResult(
+                call_id=call_id,
+                status="failed",
+                transcript="",
+                transcript_turns=[],
+                error_message=str(e),
+            )

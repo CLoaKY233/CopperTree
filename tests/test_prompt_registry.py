@@ -171,9 +171,15 @@ class TestSaveNewVersion:
         self._call(mock_pv)
         inserted_doc = mock_pv.insert_one.call_args[0][0]
         required_keys = {
-            "_id", "agent", "version", "parent_version",
-            "prompt_text", "token_count", "is_current",
-            "change_description", "eval_results",
+            "_id",
+            "agent",
+            "version",
+            "parent_version",
+            "prompt_text",
+            "token_count",
+            "is_current",
+            "change_description",
+            "eval_results",
         }
         assert required_keys.issubset(set(inserted_doc.keys()))
 
@@ -234,8 +240,12 @@ class TestPromoteVersion:
         mock_pv.find_one.return_value = {"_id": "collector_v3", "agent": "collector"}
         call_order = []
 
-        mock_pv.update_many.side_effect = lambda *a, **kw: call_order.append("update_many")
-        mock_pv.update_one.side_effect = lambda *a, **kw: call_order.append("update_one")
+        mock_pv.update_many.side_effect = lambda *a, **kw: call_order.append(
+            "update_many"
+        )
+        mock_pv.update_one.side_effect = lambda *a, **kw: call_order.append(
+            "update_one"
+        )
 
         promote_version("collector_v3")
 

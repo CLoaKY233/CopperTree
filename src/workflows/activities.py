@@ -66,11 +66,11 @@ def run_assessment(borrower_id: str) -> dict:
             ),
         )
     else:
-        print("\n" + "="*65)
+        print("\n" + "=" * 65)
         print("STAGE 1 OF 3 — ASSESSMENT (text chat)")
         print("The collections agent will type to you. You type back.")
         print("Type 'quit' or press Ctrl+C to end early.")
-        print("="*65 + "\n")
+        print("=" * 65 + "\n")
         borrower_io = TerminalIO(stage_label="Assessment Agent")
     budget = ConversationBudget(max_turns=10, max_cost_usd=1.00)
 
@@ -171,7 +171,10 @@ def run_resolution(borrower_id: str, handoff_json: str) -> dict:
         # Extract updates from voice transcript
         agent = ResolutionAgent(llm)
         messages = [
-            {"role": "assistant" if t["role"] == "agent" else "user", "content": t["content"]}
+            {
+                "role": "assistant" if t["role"] == "agent" else "user",
+                "content": t["content"],
+            }
             for t in call_result.transcript_turns
         ]
         updated_case = agent.extract_updates(messages, case_file)
@@ -244,11 +247,11 @@ def run_final_notice(borrower_id: str, handoff_json: str) -> dict:
             ),
         )
     else:
-        print("\n" + "="*65)
+        print("\n" + "=" * 65)
         print("STAGE 3 OF 3 — FINAL NOTICE (text chat)")
         print("This is the agent's last contact before legal action.")
         print("Type 'quit' or press Ctrl+C to end early.")
-        print("="*65 + "\n")
+        print("=" * 65 + "\n")
         borrower_io = TerminalIO(stage_label="Final Notice Agent")
     budget = ConversationBudget(max_turns=8, max_cost_usd=0.75)
 

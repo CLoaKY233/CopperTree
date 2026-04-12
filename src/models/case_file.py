@@ -52,7 +52,9 @@ class CaseFile(BaseModel):
     compliance: ComplianceState = ComplianceState()
     borrower_sentiment: Optional[str] = None
     cooperation_level: Optional[str] = None
-    borrower_timezone: Optional[str] = None     # IANA, e.g. "America/New_York"
-    phone_number: Optional[str] = None          # E.164, used only for production Retell calls
-    dispute_validation_required: bool = False   # FDCPA §809 — must send validation notice
-    validation_notice_sent: bool = False        # True once notice has been dispatched
+    borrower_timezone: Optional[str] = None  # IANA, e.g. "America/New_York"
+    phone_number: Optional[str] = None  # E.164, used only for production Retell calls
+    dispute_validation_required: bool = (
+        False  # FDCPA §809 — must send validation notice
+    )
+    validation_notice_sent: bool = False  # True once notice has been dispatched

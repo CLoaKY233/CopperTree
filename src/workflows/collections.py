@@ -5,7 +5,11 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
-    from src.workflows.activities import run_assessment, run_final_notice, run_resolution
+    from src.workflows.activities import (
+        run_assessment,
+        run_final_notice,
+        run_resolution,
+    )
 
 
 @workflow.defn

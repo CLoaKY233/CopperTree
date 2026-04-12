@@ -133,7 +133,9 @@ def check_contact_time(borrower_timezone: Optional[str] = None) -> None:
         )
 
 
-def generate_validation_notice(debt_amount: float, creditor: str, borrower_id: str) -> str:
+def generate_validation_notice(
+    debt_amount: float, creditor: str, borrower_id: str
+) -> str:
     """
     Generate the FDCPA §809 required debt validation notice text.
     This must be sent/logged when a dispute_flag is triggered.
