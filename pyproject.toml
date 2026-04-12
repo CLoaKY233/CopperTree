@@ -10,5 +10,19 @@ dependencies = [
     "pymongo[srv]>=4.16.0",
     "python-dotenv>=1.2.2",
     "temporalio>=1.25.0",
+    "retell-sdk>=4.0.0",
     "tiktoken>=0.12.0",
+    "fastapi>=0.135.3",
+    "uvicorn>=0.44.0",
+    "azure-ai-voicelive>=1.2.0b5",
+    "sounddevice>=0.5.5",
+    "numpy>=2.4.4",
+    "aiohttp>=3.13.5",
+    "pyaudio>=0.2.14",
+    "azure-identity>=1.25.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
 ]

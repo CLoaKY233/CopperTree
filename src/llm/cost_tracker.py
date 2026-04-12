@@ -9,12 +9,15 @@ def log_cost(
     output_tokens: int,
     cost_usd: float,
 ) -> None:
-    cost_log.insert_one(
-        {
-            "model": model,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "cost_usd": cost_usd,
-            "logged_at": datetime.now(timezone.utc).isoformat(),
-        }
-    )
+    try:
+        cost_log.insert_one(
+            {
+                "model": model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cost_usd": cost_usd,
+                "logged_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+    except Exception as e:
+        print(f"[WARN] cost_tracker: failed to log cost — {e}")

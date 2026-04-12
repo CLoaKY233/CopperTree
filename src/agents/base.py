@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -59,10 +60,14 @@ class BaseAgent(ABC):
         self.llm = llm
         self._compliance_block = _COMPLIANCE_BLOCK_PATH.read_text().strip()
 
-    def load_system_prompt(self, handoff_context: str | None = None) -> str:
+    def load_system_prompt(
+        self,
+        case_file: CaseFile | None = None,
+        handoff_context: str | None = None,
+    ) -> str:
         """
-        Load the current prompt from the registry, append the compliance block,
-        then enforce token budget. Returns the final system prompt string.
+        Load the current prompt from the registry, inject template variables,
+        append the compliance block, then enforce token budget.
         If handoff_context is provided, it is budget-checked alongside the prompt.
         """
         doc = get_current_prompt(self.agent_name)
@@ -70,6 +75,17 @@ class BaseAgent(ABC):
             raise RuntimeError(f"No current prompt found for agent '{self.agent_name}'")
 
         prompt_text = doc["prompt_text"]
+
+        # Inject case-specific template variables
+        if case_file is not None:
+            from src.config import settings
+            currency = settings.currency_symbol
+            prompt_text = prompt_text.replace("{{currency}}", currency)
+            prompt_text = prompt_text.replace("{{debt_amount}}", f"{currency}{case_file.debt.amount:,.2f}")
+            prompt_text = prompt_text.replace("{{creditor}}", case_file.debt.creditor)
+            prompt_text = prompt_text.replace("{{account_ending}}", case_file.partial_account or "UNKNOWN")
+            prompt_text = prompt_text.replace("{{borrower_id}}", case_file.borrower_id)
+
         full_prompt = f"{prompt_text}\n\n{self._compliance_block}"
 
         full_prompt, handoff_context = enforce_budget(full_prompt, handoff_context)
@@ -87,7 +103,7 @@ class BaseAgent(ABC):
         io: ConversationIO,
         handoff_context: str | None = None,
         budget: ConversationBudget | None = None,
-    ) -> tuple[list[dict], CaseFile]:
+    ) -> tuple[list[dict], CaseFile, list[str]]:
         """
         Run the full multi-turn conversation. Returns (messages, updated_case_file).
 
@@ -97,7 +113,7 @@ class BaseAgent(ABC):
         if budget is None:
             budget = ConversationBudget(max_turns=self.max_turns)
 
-        system_prompt = self.load_system_prompt(handoff_context)
+        system_prompt = self.load_system_prompt(case_file=case_file, handoff_context=handoff_context)
         messages: list[dict] = []
         injection_log: list[str] = []
 
@@ -131,6 +147,20 @@ class BaseAgent(ABC):
                 )
                 break
 
+            if triggers.get("dispute_flag") and not case_file.dispute_validation_required:
+                # FDCPA §809: dispute triggers validation notice obligation — halt collection
+                case_file.dispute_validation_required = True
+                messages.append({"role": "user", "content": borrower_text})
+                messages.append({
+                    "role": "assistant",
+                    "content": (
+                        "I've noted your dispute. As required by the Fair Debt Collection Practices Act, "
+                        "we will send you a written validation notice with details about this debt. "
+                        "Collection activity is paused pending your review of that notice."
+                    ),
+                })
+                break
+
             if triggers["hardship_flag"] and not case_file.compliance.hardship_offered:
                 case_file.financial.hardship_flags.append("borrower_self_reported")
 
@@ -144,8 +174,9 @@ class BaseAgent(ABC):
                 )
             except BudgetExceeded:
                 raise
-            except Exception:
+            except Exception as e:
                 # Transient LLM error — log and end conversation gracefully
+                print(f"[ERROR] LLM call failed: {e}")
                 messages.append(
                     {
                         "role": "assistant",
@@ -157,12 +188,31 @@ class BaseAgent(ABC):
             budget.record_turn()
             messages.append({"role": "assistant", "content": agent_response})
 
+            # Post-LLM guardrail: reject amounts exceeding debt ceiling
+            if case_file.debt and case_file.debt.amount:
+                from src.config import settings as _cfg
+                _cur = _cfg.currency_symbol
+                amounts = re.findall(r'[\$₹₱€£]\s*([\d,]+(?:\.\d+)?)', agent_response)
+                for amt_str in amounts:
+                    try:
+                        amt = float(amt_str.replace(',', ''))
+                    except ValueError:
+                        continue
+                    if amt > case_file.debt.amount * 1.05:
+                        corrected = (
+                            f"I need to clarify — the total outstanding balance on this "
+                            f"account is {_cur}{case_file.debt.amount:,.2f}. Let me present "
+                            f"the correct options for resolving this."
+                        )
+                        messages[-1]["content"] = corrected
+                        break
+
             if self.is_complete(messages, case_file):
                 break
 
         # Final structured extraction
         updated_case_file = self.extract_updates(messages, case_file)
-        return messages, updated_case_file
+        return messages, updated_case_file, injection_log
 
     @abstractmethod
     def extract_updates(self, messages: list[dict], case_file: CaseFile) -> CaseFile:

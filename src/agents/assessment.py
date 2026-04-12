@@ -18,10 +18,13 @@ JSON schema:
   "monthly_income_est": number or null,
   "obligations": string or null,
   "hardship_flags": [string],
+  "hardship_type": string or null,
   "borrower_sentiment": "cooperative" | "evasive" | "combative" | "distressed" | "confused" | null,
   "cooperation_level": "high" | "medium" | "low" | null,
   "ai_disclosed": boolean,
   "recording_disclosed": boolean,
+  "mini_miranda_delivered": boolean,
+  "dispute_flag": boolean,
   "stop_contact_requested": boolean,
   "assessment_complete": boolean
 }
@@ -30,6 +33,9 @@ Rules:
 - identity_verified = true only if borrower confirmed their account digits
 - ai_disclosed = true if agent stated it is an AI or automated system
 - recording_disclosed = true if agent mentioned the call may be recorded
+- mini_miranda_delivered = true if agent said "This is an attempt to collect a debt" or equivalent
+- dispute_flag = true if borrower disputed the debt or requested validation
+- hardship_type = brief description of hardship if any (e.g. "job_loss", "medical", "disability")
 - assessment_complete = true if agent gathered sufficient financial information
 """
 
@@ -40,10 +46,13 @@ class AssessmentExtraction(BaseModel):
     monthly_income_est: Optional[float] = None
     obligations: Optional[str] = None
     hardship_flags: list[str] = []
+    hardship_type: Optional[str] = None
     borrower_sentiment: Optional[str] = None
     cooperation_level: Optional[str] = None
     ai_disclosed: bool = False
     recording_disclosed: bool = False
+    mini_miranda_delivered: bool = False
+    dispute_flag: bool = False
     stop_contact_requested: bool = False
     assessment_complete: bool = False
 
@@ -102,5 +111,7 @@ class AssessmentAgent(BaseAgent):
         case_file.compliance.recording_disclosed = extracted.recording_disclosed
         if extracted.stop_contact_requested:
             case_file.compliance.stop_contact = True
+        if extracted.dispute_flag:
+            case_file.dispute_validation_required = True
 
         return case_file

@@ -30,10 +30,18 @@ def save_new_version(
     return doc_id
 
 
-def promote_version(doc_id: str) -> None:
+def update_eval_results(doc_id: str, eval_results: dict) -> None:
+    if prompt_versions.find_one({"_id": doc_id}) is None:
+        raise ValueError(f"Prompt version {doc_id!r} not found")
+    prompt_versions.update_one({"_id": doc_id}, {"$set": {"eval_results": eval_results}})
+
+
+def promote_version(doc_id: str, eval_results: dict | None = None) -> None:
     doc = prompt_versions.find_one({"_id": doc_id})
     if doc is None:
         raise ValueError(f"Prompt version {doc_id!r} not found")
+    if eval_results is not None:
+        prompt_versions.update_one({"_id": doc_id}, {"$set": {"eval_results": eval_results}})
     prompt_versions.update_many(
         {"agent": doc["agent"], "is_current": True},
         {"$set": {"is_current": False}},
@@ -42,4 +50,12 @@ def promote_version(doc_id: str) -> None:
 
 
 def rollback(agent: str, to_version: int) -> None:
-    promote_version(f"{agent}_v{to_version}")
+    _rollback_id = f"{agent}_v{to_version}"
+    doc = prompt_versions.find_one({"_id": _rollback_id})
+    if doc is None:
+        raise ValueError(f"Prompt version {_rollback_id!r} not found")
+    prompt_versions.update_many(
+        {"agent": doc["agent"], "is_current": True},
+        {"$set": {"is_current": False}},
+    )
+    prompt_versions.update_one({"_id": _rollback_id}, {"$set": {"is_current": True}})

@@ -4,6 +4,14 @@ from openai import OpenAI
 from src.config import settings
 from src.llm.cost_tracker import log_cost
 
+
+class LLMChoicesEmptyError(Exception):
+    pass
+
+
+class LLMContentFilteredError(Exception):
+    pass
+
 PRICING: dict[str, dict[str, float]] = {
     "gpt-5.4-nano": {"input": 0.15 / 1_000_000, "output": 0.60 / 1_000_000},
 }
@@ -42,10 +50,18 @@ class LLMClient:
             usage.prompt_tokens * pricing["input"]
             + usage.completion_tokens * pricing["output"]
         )
-        log_cost(
-            model=model,
-            input_tokens=usage.prompt_tokens,
-            output_tokens=usage.completion_tokens,
-            cost_usd=cost,
-        )
-        return resp.choices[0].message.content
+        try:
+            log_cost(
+                model=model,
+                input_tokens=usage.prompt_tokens,
+                output_tokens=usage.completion_tokens,
+                cost_usd=cost,
+            )
+        except Exception as e:
+            print(f"[WARN] cost_tracker: failed to log cost — {e}")
+        if not resp.choices:
+            raise LLMChoicesEmptyError(f"Azure returned empty choices for model {model}")
+        content = resp.choices[0].message.content
+        if content is None:
+            raise LLMContentFilteredError("Azure content filter blocked this response")
+        return content

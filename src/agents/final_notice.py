@@ -17,6 +17,11 @@ JSON schema:
   "commitment_amount": number or null,
   "commitment_type": "lump_sum" | "payment_plan" | null,
   "hardship_offered": boolean,
+  "ai_disclosed": boolean,
+  "recording_disclosed": boolean,
+  "mini_miranda_delivered": boolean,
+  "consequences_stated": boolean,
+  "borrower_sentiment": "cooperative" | "resistant" | "resigned" | "hostile" | null,
   "stop_contact_requested": boolean,
   "conversation_complete": boolean
 }
@@ -26,6 +31,9 @@ Rules:
 - final_decision = "declined" if borrower explicitly refused all options
 - final_decision = "no_response" if borrower was unresponsive or evasive throughout
 - hardship_offered = true if agent explicitly offered a hardship referral
+- mini_miranda_delivered = true if agent said "This is an attempt to collect a debt" or equivalent
+- consequences_stated = true if agent explained credit/legal consequences of non-payment
+- borrower_sentiment = overall sentiment during this final notice conversation
 """
 
 
@@ -34,6 +42,11 @@ class FinalNoticeExtraction(BaseModel):
     commitment_amount: Optional[float] = None
     commitment_type: Optional[str] = None
     hardship_offered: bool = False
+    ai_disclosed: bool = False
+    recording_disclosed: bool = False
+    mini_miranda_delivered: bool = False
+    consequences_stated: bool = False
+    borrower_sentiment: Optional[str] = None
     stop_contact_requested: bool = False
     conversation_complete: bool = False
 
@@ -80,8 +93,14 @@ class FinalNoticeAgent(BaseAgent):
 
         if extracted.hardship_offered:
             case_file.compliance.hardship_offered = True
+        if extracted.ai_disclosed:
+            case_file.compliance.ai_disclosed = True
+        if extracted.recording_disclosed:
+            case_file.compliance.recording_disclosed = True
         if extracted.stop_contact_requested:
             case_file.compliance.stop_contact = True
+        if extracted.borrower_sentiment:
+            case_file.borrower_sentiment = extracted.borrower_sentiment
         if extracted.final_decision in ("settled", "payment_plan"):
             if extracted.commitment_amount and extracted.commitment_type:
                 case_file.negotiation.commitments.append(

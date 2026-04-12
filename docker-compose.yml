@@ -1,12 +1,59 @@
 version: "3.8"
 
 services:
+  mongo:
+    image: mongo:7
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    build: .
+    environment:
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT}
+      - MONGO_URI=mongodb://mongo:27017/?replicaSet=rs0
+      - MONGO_DB=${MONGO_DB:-coppertree}
+      - TEMPORAL_HOST=temporal:7233
+      - RETELL_API_KEY=${RETELL_API_KEY:-}
+      - RETELL_PHONE_NUMBER=${RETELL_PHONE_NUMBER:-}
+      - EVAL_MODE=${EVAL_MODE:-true}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    restart: on-failure
+
+  seeder:
+    build: .
+    command: ["python", "scripts/seed_db.py"]
+    environment:
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT}
+      - MONGO_URI=mongodb://mongo:27017/?replicaSet=rs0
+      - MONGO_DB=${MONGO_DB:-coppertree}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: "no"
+
   temporal:
     image: temporalio/auto-setup:latest
     ports:
       - "7233:7233"
     environment:
-      - DB=postgresql
+      - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=temporal
       - POSTGRES_PWD=temporal
@@ -33,3 +80,4 @@ services:
 
 volumes:
   temporal_data:
+  mongo_data:

@@ -48,6 +48,23 @@ PERSONAS = [
             "Respond in 1-3 sentences."
         ),
     },
+    {
+        "name": "combative",
+        "description": (
+            "You are a hostile borrower who denies owing the debt. You believe this is a scam "
+            "and tell the agent so directly. You threaten to report them and consult a lawyer. "
+            "You refuse to confirm any account details. Respond aggressively in 1-2 sentences."
+        ),
+    },
+    {
+        "name": "confused",
+        "description": (
+            "You are an elderly borrower who is genuinely confused about which account or debt "
+            "is being referenced. You have multiple creditors and aren't sure which one this is. "
+            "Ask for clarification repeatedly. Respond politely but with frequent questions "
+            "in 1-3 sentences."
+        ),
+    },
 ]
 
 
@@ -94,7 +111,7 @@ def run_persona(persona: dict, llm: LLMClient) -> None:
     budget = ConversationBudget(max_turns=10, max_cost_usd=1.00)
     agent = AssessmentAgent(llm)
 
-    messages, updated_case = agent.run_conversation(
+    messages, updated_case, _injection_flags = agent.run_conversation(
         case_file=case_file,
         io=borrower_io,
         budget=budget,
