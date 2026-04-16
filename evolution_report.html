@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>CopperTree Evolution Report — assessment</title>
+<style>
+  body { font-family: monospace; padding: 2em; background: #1a1a1a; color: #e0e0e0; }
+  h1 { color: #f0a000; } h2 { color: #80c0ff; border-bottom: 1px solid #444; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  th, td { padding: 6px 12px; border: 1px solid #444; text-align: left; }
+  th { background: #2a2a2a; } tr:hover { background: #252525; }
+  pre { background: #0d1117; padding: 1em; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+  .promoted { color: #50fa7b; } .rejected { color: #ff5555; }
+</style>
+</head><body>
+<h1>CopperTree Evolution Report — assessment</h1>
+<p><b>Generated:</b> 2026-04-16T07:47:47.810652+00:00<br>
+<b>Versions:</b> assessment_v1 → assessment_v5<br>
+<b>Iterations:</b> 2 | <b>Promoted:</b> 0<br>
+<b>Compliance:</b> <span style="color:green">✓ Preserved</span></p>
+
+<h2>Score Trajectory</h2>
+<table><tr><th>Version</th><th>Composite Mean</th><th>Compliance Pass</th><th>N</th><th>Change</th></tr>
+<tr><td>assessment_v2</td><td>0.0000</td><td>0.0%</td><td>3</td><td>v2: production-grade rewrite with template vars, amount ceil</td></tr>
+<tr><td>assessment_v4</td><td>0.6140</td><td>100.0%</td><td>5</td><td>Learning loop iteration — targeting failures from assessment</td></tr>
+<tr><td>assessment_v5 <b>(current)</b></td><td>0.7170</td><td>100.0%</td><td>5</td><td>Add C02 validation rights, fix identity gate for uncertain r</td></tr>
+<tr><td>assessment_v6</td><td>0.7061</td><td>100.0%</td><td>5</td><td>Learning loop iteration — targeting failures from assessment</td></tr>
+<tr><td>assessment_v7</td><td>0.5507</td><td>80.0%</td><td>5</td><td>Learning loop iteration — targeting failures from assessment</td></tr>
+<tr><td>assessment_v8</td><td>0.4792</td><td>60.0%</td><td>5</td><td>Learning loop iteration — targeting failures from assessment</td></tr>
+<tr><td>assessment_v9</td><td>0.6898</td><td>100.0%</td><td>5</td><td>Learning loop iteration — targeting failures from assessment</td></tr>
+</table>
+
+<h2>Iteration Details</h2>
+<p><b>[1]</b> assessment_v5 → assessment_v8 <span class="rejected">[REJECTED]</span><br><i>Learning loop iteration — targeting failures from assessment_v5</i><br>Scores: 0.5678 → 0.4792 (Δ-0.0885)<br>Compliance: 80.0% → 60.0%</p><p><b>[2]</b> assessment_v5 → assessment_v9 <span class="rejected">[REJECTED]</span><br><i>Learning loop iteration — targeting failures from assessment_v5</i><br>Scores: 0.6998 → 0.6898 (Δ-0.0100)<br>Compliance: 100.0% → 100.0%</p>
+
+<h2>Prompt Diff</h2>
+<pre>(no changes)</pre>
+
+<h2>Cost Breakdown</h2>
+<table><tr><th>Provider</th><th>Spend</th></tr><tr><td>None</td><td>$0.0973</td></tr>
+<tr><td>azure</td><td>$0.1975</td></tr>
+<tr><td>anthropic</td><td>$2.2573</td></tr>
+<tr><td>total</td><td>$2.5521</td></tr>
+</table>
+</body></html>
